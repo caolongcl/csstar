@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include <sdk.hpp>
+#include <mqtt.hpp>
 
 int main(int, char**){
-    demo::Sdk sdk("for_cppdemptest");
+    CS::Sdk sdk("for_cppdemptest");
     sdk.PrintMyName();
     return 0;
 }

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-namespace demo
+namespace CS
 {
   class Sdk
   {

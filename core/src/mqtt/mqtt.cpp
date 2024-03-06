@@ -1,6 +1,6 @@
-#include "sdk.hpp"
+#include "mqtt.hpp"
 
-namespace demo
+namespace CS
 {
 
   Sdk::Sdk(const std::string &name)

@@ -1,10 +1,10 @@
 #include <iostream>
 
-#include "sdk.hpp"
+#include "mqtt.hpp"
 
 int main(int, char **)
 {
-    demo::Sdk sdk("sdk_lib");
+    CS::Sdk sdk("sdk_lib");
     sdk.PrintMyName();
     return 0;
 }
