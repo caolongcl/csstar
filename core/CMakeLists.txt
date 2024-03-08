@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.0.0)
 # 设置工程名字 版本 以及语言
 project(csdemo VERSION 0.1.0 LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # debug 生成的可执行文件名会多一个 d，可注释掉
 set(CMAKE_DEBUG_POSTFIX d)
 
@@ -19,7 +22,7 @@ add_executable(${PROJECT_NAME} main.cpp)
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 # 链接 sdk 库
-target_link_libraries(${PROJECT_NAME} PUBLIC cscore)
+target_link_libraries(${PROJECT_NAME} PRIVATE cscore)
 
 # 设置安装路径为 bin
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

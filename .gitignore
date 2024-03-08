@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+
+# custom
+.vscode
+core/build
