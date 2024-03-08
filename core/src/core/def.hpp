@@ -25,6 +25,7 @@
 #include <stack>
 #include <queue>
 #include <utility>
+#include <chrono>
 
 #include "result.hpp"
 
@@ -48,11 +49,22 @@ namespace DSG
     return std::string_view(l) == std::string_view(r);
   }
 
+  inline std::string CurTime()
+  {
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    return std::ctime(&now);
+  }
+
+  inline int64_t CurTimestamp()
+  {
+    return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  }
+
 #define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
-#define DSG_ERROR(msg) std::cerr << "[DSG E] " << msg << LOG_INFO << "\n";
-#define DSG_LOG(msg) std::clog << "[DSG D] " << msg << "\n";
-#define DSG_WARN(msg) std::clog << "[DSG W] " << msg << LOG_INFO << "\n";
+#define DSG_ERROR(msg) std::cerr << "[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n";
+#define DSG_LOG(msg) std::clog << "[DSG D " << CurTimestamp() << "] " << msg << "\n";
+#define DSG_WARN(msg) std::clog << "[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n";
 #define DSG_RUNTIME_ERROR(msg)          \
   {                                     \
     std::stringstream ss{};             \

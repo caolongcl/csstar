@@ -10,7 +10,7 @@ namespace DSG
   class MqttP : public Mqtt
   {
   public:
-    MqttP(const Config &config);
+    MqttP(const ClientConfig &config);
     ~MqttP();
 
   private:
@@ -18,10 +18,12 @@ namespace DSG
     auto DeInitClient() -> void override;
     auto Connect(const ConnectConfig&) -> Result override;
     auto Disconnect() -> Result override;
-
+    auto ReConnect(const ConnectConfig &) -> Result override;
+    auto SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result override;
+    auto Subscribe(const std::string &topic, Qos qos) -> Result override;
 
   private:
-    Config _config;
+    ClientConfig _clientConfig;
     void *_client;
   };
 }

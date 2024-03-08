@@ -36,16 +36,16 @@ namespace DSG
 #define DSG_MQTTCALL_V(funccall) funccall
 
   ///////////////////////////////////////////
-  auto Mqtt::Config::to_string() const -> std::string
+  auto Mqtt::ClientConfig::to_string() const -> std::string
   {
     std::stringstream ss;
-    ss << "Mqtt::Config{address:" << _address
+    ss << "Mqtt::ClientConfig{address:" << _address
        << ", client_id:" << _clientID
        << "}";
     return ss.str();
   }
 
-  auto Mqtt::RequestMqtt(const Config &config) -> Mqtt *
+  auto Mqtt::RequestMqtt(const ClientConfig &config) -> Mqtt *
   {
     return new MqttP(config);
   }
@@ -71,19 +71,53 @@ namespace DSG
       return ss.str();
     }
 
-    static std::string to_string(MQTTAsync_successData *response)
+    enum class SuccessType
+    {
+      eSub,
+      eSubMany,
+      ePub,
+      eConnect,
+    };
+
+    static std::string to_string(MQTTAsync_successData *response, SuccessType type)
     {
       if (!response)
         return "";
 
       std::stringstream ss;
       ss << "MQTTAsync_successData:{"
-         << "token:" << response->token
-         << ", ver:" << response->alt.connect.MQTTVersion
-         << ", sessionPresent:" << response->alt.connect.sessionPresent;
-      if (response->alt.connect.serverURI)
+         << "token:" << response->token;
+      switch (type)
       {
-        ss << ", serverURI:" << response->alt.connect.serverURI;
+      case SuccessType::eSub:
+        ss << ", qos:" << response->alt.qos;
+        break;
+      case SuccessType::eSubMany:
+        if (response->alt.qosList)
+        {
+          // todo
+        }
+        else
+        {
+          ss << ", qos:" << response->alt.qos;
+        }
+        break;
+      case SuccessType::ePub:
+        if (response->alt.pub.destinationName)
+        {
+          ss << ", dest:" << response->alt.pub.destinationName;
+        }
+        break;
+      case SuccessType::eConnect:
+        ss << ", ver:" << response->alt.connect.MQTTVersion
+           << ", sessionPresent:" << response->alt.connect.sessionPresent;
+        if (response->alt.connect.serverURI)
+        {
+          ss << ", serverURI:" << response->alt.connect.serverURI;
+        }
+        break;
+      default:
+        break;
       }
 
       ss << "}";
@@ -93,23 +127,26 @@ namespace DSG
 
   static void ConnectionLost(void *context, char *cause)
   {
-    DSG_LOG("ConnectionLost");
+    std::string c = cause ? cause : "";
+    DSG_LOG("ConnectionLost:" << c);
   }
 
   static int MessageArrived(void *context, char *topicName, int topicLen, MQTTAsync_message *m)
   {
-    DSG_LOG("MessageArrived");
-    return 0;
+    DSG_LOG("MessageArrived: topic:" << topicName << ", msg:" << m->payloadlen << ", " << static_cast<char *>(m->payload));
+    DSG_MQTTCALL_V(MQTTAsync_freeMessage(&m));
+    DSG_MQTTCALL_V(MQTTAsync_free(topicName));
+    return 1;
   }
 
   static void DeliveryComplete(void *context, MQTTAsync_token token)
   {
-    DSG_LOG("DeliveryComplete");
+    DSG_LOG("DeliveryComplete token:" << token);
   }
 
   static void OnConnect(void *context, MQTTAsync_successData *response)
   {
-    DSG_LOG("OnConnect:" << to_string(response));
+    DSG_LOG("OnConnect:" << to_string(response, SuccessType::eConnect));
     auto mqtt = static_cast<MqttP *>(context);
   }
 
@@ -120,7 +157,7 @@ namespace DSG
 
   static void OnDisconnect(void *context, MQTTAsync_successData *response)
   {
-    DSG_LOG("OnDisconnect:" << to_string(response));
+    DSG_LOG("OnDisconnect:" << to_string(response, SuccessType::eConnect));
   }
 
   static void OnDisconnectFailure(void *context, MQTTAsync_failureData *response)
@@ -128,11 +165,31 @@ namespace DSG
     DSG_LOG("OnDisconnectFailure:" << to_string(response));
   }
 
-  //////////////////////////////////////////
-  MqttP::MqttP(const Config &config)
-      : _config{config}, _client{nullptr}
+  static void OnSend(void *context, MQTTAsync_successData *response)
   {
-    DSG_LOG(_config.to_string());
+    DSG_LOG("onSend:" << to_string(response, SuccessType::ePub));
+  }
+
+  static void OnSendFailure(void *context, MQTTAsync_failureData *response)
+  {
+    DSG_LOG("onSendFailure:" << to_string(response));
+  }
+
+  static void OnSubscribe(void *context, MQTTAsync_successData *response)
+  {
+    DSG_LOG("OnSubscribe:" << to_string(response, SuccessType::eSub));
+  }
+
+  void static OnSubscribeFailure(void *context, MQTTAsync_failureData *response)
+  {
+    DSG_LOG("OnSubscribeFailure:" << to_string(response));
+  }
+
+  //////////////////////////////////////////
+  MqttP::MqttP(const ClientConfig &config)
+      : _clientConfig{config}, _client{nullptr}
+  {
+    DSG_LOG(_clientConfig.to_string());
     DSG_CALL_EX(InitClient());
   }
 
@@ -143,7 +200,7 @@ namespace DSG
 
   auto MqttP::InitClient() -> Result
   {
-    DSG_MQTTCALL(MQTTAsync_create(&_client, _config._address.c_str(), _config._clientID.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL));
+    DSG_MQTTCALL(MQTTAsync_create(&_client, _clientConfig._address.c_str(), _clientConfig._clientID.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL));
     DSG_MQTTCALL(MQTTAsync_setCallbacks(_client, this, ConnectionLost, MessageArrived, DeliveryComplete));
     return RV::eSuccess;
   }
@@ -176,6 +233,41 @@ namespace DSG
     opts.onFailure = OnDisconnectFailure;
     opts.context = _client;
     DSG_MQTTCALL(MQTTAsync_disconnect(_client, &opts));
+    return RV::eSuccess;
+  }
+
+  auto MqttP::ReConnect(const ConnectConfig &) -> Result
+  {
+    MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
+    // todo
+    return RV::eSuccess;
+  }
+
+  auto MqttP::SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result
+  {
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.onSuccess = OnSend;
+    opts.onFailure = OnSendFailure;
+    opts.context = _client;
+
+    MQTTAsync_message pubmsg = MQTTAsync_message_initializer;
+    pubmsg.payloadlen = payload.size;
+    pubmsg.payload = payload.bytes;
+    pubmsg.qos = std::underlying_type_t<Qos>(qos);
+    pubmsg.retained = 0;
+
+    DSG_MQTTCALL(MQTTAsync_sendMessage(_client, topic.c_str(), &pubmsg, &opts));
+    return RV::eSuccess;
+  }
+
+  auto MqttP::Subscribe(const std::string &topic, Qos qos) -> Result
+  {
+    DSG_LOG("Subscribing to topic " << topic << " for client " << _clientConfig._clientID << " using QoS " << std::underlying_type_t<Qos>(qos));
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.onSuccess = OnSubscribe;
+    opts.onFailure = OnSubscribeFailure;
+    opts.context = _client;
+    DSG_MQTTCALL(MQTTAsync_subscribe(_client, topic.c_str(), std::underlying_type_t<Qos>(qos), &opts));
     return RV::eSuccess;
   }
 }
