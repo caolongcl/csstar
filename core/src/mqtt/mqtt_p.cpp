@@ -5,32 +5,29 @@
 
 namespace DSG
 {
-#define ADDRESS "tcp://mqtt.eclipseprojects.io:1883"
-#define CLIENTID "ExampleClientPub"
-#define TOPIC "MQTT Examples"
-#define PAYLOAD "Hello World!"
-#define QOS 1
-#define TIMEOUT 10000L
-
+#ifdef DSG_TAG
+#undef DSG_TAG
+#endif
+#define DSG_TAG "    MQTT"
 #define DSG_Err RV::eErrMqtt
 
-#define DSG_MQTTCALL(funccall)                 \
-  {                                            \
-    auto ret = MQTTASYNC_SUCCESS;              \
-    if ((ret = funccall) != MQTTASYNC_SUCCESS) \
-    {                                          \
-      DSG_ERROR(#funccall << ", ret=" << ret); \
-      return DSG_Err;                          \
-    }                                          \
+#define DSG_MQTTCALL(funccall)                                                   \
+  {                                                                              \
+    auto ret = MQTTASYNC_SUCCESS;                                                \
+    if ((ret = funccall) != MQTTASYNC_SUCCESS)                                   \
+    {                                                                            \
+      DSG_ERROR(#funccall << ", ret=" << MQTTAsync_strerror(ret) << "/" << ret); \
+      return DSG_Err;                                                            \
+    }                                                                            \
   }
 
-#define DSG_MQTTCALL_EX(funccall)                     \
-  {                                                   \
-    auto ret = MQTTASYNC_SUCCESS;                     \
-    if ((ret = funccall) != MQTTASYNC_SUCCESS)        \
-    {                                                 \
-      DSG_RUNTIME_ERROR(#funccall << ", ret=" << ret) \
-    }                                                 \
+#define DSG_MQTTCALL_EX(funccall)                                                       \
+  {                                                                                     \
+    auto ret = MQTTASYNC_SUCCESS;                                                       \
+    if ((ret = funccall) != MQTTASYNC_SUCCESS)                                          \
+    {                                                                                   \
+      DSG_RUNTIME_ERROR(#funccall << ", ret=" << MQTTAsync_strerror(ret) << "/" << ret) \
+    }                                                                                   \
   }
 
 #define DSG_MQTTCALL_V(funccall) funccall
@@ -167,12 +164,12 @@ namespace DSG
 
   static void OnSend(void *context, MQTTAsync_successData *response)
   {
-    DSG_LOG("onSend:" << to_string(response, SuccessType::ePub));
+    DSG_LOG("OnSend:" << to_string(response, SuccessType::ePub));
   }
 
   static void OnSendFailure(void *context, MQTTAsync_failureData *response)
   {
-    DSG_LOG("onSendFailure:" << to_string(response));
+    DSG_LOG("OnSendFailure:" << to_string(response));
   }
 
   static void OnSubscribe(void *context, MQTTAsync_successData *response)
@@ -180,9 +177,19 @@ namespace DSG
     DSG_LOG("OnSubscribe:" << to_string(response, SuccessType::eSub));
   }
 
-  void static OnSubscribeFailure(void *context, MQTTAsync_failureData *response)
+  static void OnSubscribeFailure(void *context, MQTTAsync_failureData *response)
   {
     DSG_LOG("OnSubscribeFailure:" << to_string(response));
+  }
+
+  static void OnUnSubscribe(void *context, MQTTAsync_successData *response)
+  {
+    DSG_LOG("OnUnSubscribe:" << to_string(response, SuccessType::eSub));
+  }
+
+  static void OnUnSubscribeFailure(void *context, MQTTAsync_failureData *response)
+  {
+    DSG_LOG("OnUnSubscribeFailure:" << to_string(response));
   }
 
   //////////////////////////////////////////
@@ -196,6 +203,23 @@ namespace DSG
   MqttP::~MqttP()
   {
     DeInitClient();
+  }
+
+  auto Mqtt::DumpVersionInfo() -> void
+  {
+    MQTTAsync_nameValue *info = MQTTAsync_getVersionInfo();
+    while (info)
+    {
+      if (info->name && info->value)
+      {
+        DSG_LOG("{" << info->name << ":" << info->value << "}");
+      }
+      else
+      {
+        break;
+      }
+      ++info;
+    }
   }
 
   auto MqttP::InitClient() -> Result
@@ -236,11 +260,15 @@ namespace DSG
     return RV::eSuccess;
   }
 
-  auto MqttP::ReConnect(const ConnectConfig &) -> Result
+  auto MqttP::ReConnect() -> Result
   {
-    MQTTAsync_connectOptions conn_opts = MQTTAsync_connectOptions_initializer;
-    // todo
+    DSG_MQTTCALL(MQTTAsync_reconnect(_client));
     return RV::eSuccess;
+  }
+
+  auto MqttP::IsConnected() -> bool
+  {
+    return MQTTAsync_isConnected(_client);
   }
 
   auto MqttP::SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result
@@ -268,6 +296,17 @@ namespace DSG
     opts.onFailure = OnSubscribeFailure;
     opts.context = _client;
     DSG_MQTTCALL(MQTTAsync_subscribe(_client, topic.c_str(), std::underlying_type_t<Qos>(qos), &opts));
+    return RV::eSuccess;
+  }
+
+  auto MqttP::UnSubscribe(const std::string &topic) -> Result
+  {
+    DSG_LOG("UnSubscribe to topic " << topic << " for client " << _clientConfig._clientID);
+    MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
+    opts.onSuccess = OnUnSubscribe;
+    opts.onFailure = OnUnSubscribeFailure;
+    opts.context = _client;
+    DSG_MQTTCALL(MQTTAsync_unsubscribe(_client, topic.c_str(), &opts));
     return RV::eSuccess;
   }
 }

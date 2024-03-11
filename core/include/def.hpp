@@ -62,9 +62,10 @@ namespace DSG
 
 #define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
-#define DSG_ERROR(msg) std::cerr << "[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n";
-#define DSG_LOG(msg) std::clog << "[DSG D " << CurTimestamp() << "] " << msg << "\n";
-#define DSG_WARN(msg) std::clog << "[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n";
+#define DSG_TAG " IGNORE"
+#define DSG_ERROR(msg) std::cerr << "[DSG E " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n";
+#define DSG_LOG(msg) std::clog << "[DSG D " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << "\n";
+#define DSG_WARN(msg) std::clog << "[DSG W " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n";
 #define DSG_RUNTIME_ERROR(msg)          \
   {                                     \
     std::stringstream ss{};             \

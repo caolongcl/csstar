@@ -6,8 +6,12 @@
 
 using namespace DSG;
 
+#define DSG_TAG "    MAIN"
+
 int main(int, char **)
-{
+{   
+    Mqtt::DumpVersionInfo();
+    
     std::string topic = "MqttTest";
 
     auto *subMqtt = Mqtt::RequestMqtt(Mqtt::ClientConfig{
