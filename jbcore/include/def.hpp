@@ -62,14 +62,13 @@ namespace DSG
 
 #define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
-#define DSG_TAG " IGNORE"
-#define DSG_ERROR(msg) std::cerr << Str("[DSG E " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
-#define DSG_LOG(msg) std::clog << Str("[DSG D " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << "\n");
-#define DSG_WARN(msg) std::clog << Str("[DSG W " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
+#define DSG_ERROR(msg) std::cerr << Str("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+#define DSG_LOG(msg) std::clog << Str("[DSG D " << CurTimestamp() << "] " << msg << "\n");
+#define DSG_WARN(msg) std::clog << Str("[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 #define DSG_THROW(msg) throw std::runtime_error(Str(msg << "\n"));
 
 #define DSG_TRACE(msg)
-// #define DSG_TRACE(msg) std::clog << Str("[DSG T " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
+  // #define DSG_TRACE(msg) std::clog << Str("[DSG T " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 
 #define DSG_CALL_EX(funccall) \
   {                           \

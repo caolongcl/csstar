@@ -10,14 +10,23 @@ set(root_DIR ${CUR_DIR}/..)
 set(eclipse-paho-mqtt-c_DIR ${root_DIR}/lib/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
 find_package(eclipse-paho-mqtt-c REQUIRED)
 
+set(ZXing_DIR ${root_DIR}/lib/zxingcpp/lib/cmake/ZXing)
+find_package(ZXing REQUIRED)
+find_package(Threads REQUIRED)
+
 add_subdirectory(mqtt)
+add_subdirectory(qrcode)
 
 set(JB_CORE_SRC
   ${CORE_MQTT_SRC}
+  ${CORE_QRCODE_SRC}
 )
 
 add_library(${PROJECT_NAME} ${JB_CORE_SRC})
-target_link_libraries(${PROJECT_NAME} eclipse-paho-mqtt-c::paho-mqtt3a-static)
+target_link_libraries(${PROJECT_NAME} 
+  eclipse-paho-mqtt-c::paho-mqtt3a-static
+  ZXing::ZXing Threads::Threads
+)
 
 # 链接 jbcore 库时会自动引入库头文件路径
 target_include_directories(${PROJECT_NAME}

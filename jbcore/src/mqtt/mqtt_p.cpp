@@ -5,10 +5,6 @@
 
 namespace DSG
 {
-#ifdef DSG_TAG
-#undef DSG_TAG
-#endif
-#define DSG_TAG "    MQTT"
 #define DSG_Err RV::eErrMqtt
 
 #define DSG_MQTTCALL(funccall)                                                   \
@@ -26,7 +22,7 @@ namespace DSG
     auto ret = MQTTASYNC_SUCCESS;                                                       \
     if ((ret = funccall) != MQTTASYNC_SUCCESS)                                          \
     {                                                                                   \
-      DSG_RUNTIME_ERROR(#funccall << ", ret=" << MQTTAsync_strerror(ret) << "/" << ret) \
+      DSG_THROW(#funccall << ", ret=" << MQTTAsync_strerror(ret) << "/" << ret) \
     }                                                                                   \
   }
 

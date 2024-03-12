@@ -6,8 +6,6 @@
 
 using namespace DSG;
 
-#define DSG_TAG "    MAIN"
-
 int main(int, char **)
 {   
     Mqtt::DumpVersionInfo();

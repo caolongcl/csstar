@@ -9,6 +9,8 @@ set(${CUR_TARGET}
   ${CUR_DIR}/mqtt.hpp
   ${CUR_DIR}/def.hpp
   ${CUR_DIR}/mqtt_p.hpp
+  ${CUR_DIR}/qrcode.hpp
+  ${CUR_DIR}/qrcode_p.hpp
   PARENT_SCOPE
 )
 
@@ -16,5 +18,6 @@ set(${CUR_TARGET}_INSTALL
   ${CUR_DIR}/result.hpp
   ${CUR_DIR}/mqtt.hpp
   ${CUR_DIR}/def.hpp
+  ${CUR_DIR}/qrcode.hpp
   PARENT_SCOPE
 )

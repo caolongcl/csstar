@@ -10,6 +10,7 @@ namespace DSG
     {
       eSuccess,
       eErrMqtt,
+      eErrQRCode,
     };
 
     Result(Val v) : val(v)
