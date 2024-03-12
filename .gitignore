@@ -33,5 +33,4 @@
 
 
 # custom
-.vscode
-core/build
+deps/tmp

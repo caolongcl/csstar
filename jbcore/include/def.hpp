@@ -27,8 +27,6 @@
 #include <utility>
 #include <chrono>
 
-#include "result.hpp"
-
 namespace DSG
 {
   inline std::string_view ParseFileNameFromPath(std::string_view path)
@@ -60,30 +58,25 @@ namespace DSG
     return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   }
 
+#define Str(_in_stream) ((std::stringstream() << _in_stream).str())
+
 #define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
 #define DSG_TAG " IGNORE"
-#define DSG_ERROR(msg) std::cerr << "[DSG E " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n";
-#define DSG_LOG(msg) std::clog << "[DSG D " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << "\n";
-#define DSG_WARN(msg) std::clog << "[DSG W " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n";
-#define DSG_RUNTIME_ERROR(msg)          \
-  {                                     \
-    std::stringstream ss{};             \
-    ss << msg << "\n";                  \
-    throw std::runtime_error(ss.str()); \
-  }
+#define DSG_ERROR(msg) std::cerr << Str("[DSG E " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
+#define DSG_LOG(msg) std::clog << Str("[DSG D " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << "\n");
+#define DSG_WARN(msg) std::clog << Str("[DSG W " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
+#define DSG_THROW(msg) throw std::runtime_error(Str(msg << "\n"));
 
 #define DSG_TRACE(msg)
-  // #define DSG_TRACE(msg)                                                                                           \
-//   std::clog << "[DSG T " << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << "/" << __func__ << ":" << __LINE__ \
-//             << "] " << msg << "\n";
+// #define DSG_TRACE(msg) std::clog << Str("[DSG T " << CurTimestamp() << " /" << DSG_TAG << "] " << msg << LOG_INFO << "\n");
 
-#define DSG_CALL_EX(funccall)      \
-  {                                \
-    if (!(funccall))               \
-    {                              \
-      DSG_RUNTIME_ERROR(#funccall) \
-    }                              \
+#define DSG_CALL_EX(funccall) \
+  {                           \
+    if (!(funccall))          \
+    {                         \
+      DSG_THROW(#funccall)    \
+    }                         \
   }
 
 #define DSG_CALL(funccall) \
@@ -104,3 +97,5 @@ namespace DSG
     }                                    \
   }
 }
+
+//////////////////////////////////////////////////////////////////

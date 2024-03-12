@@ -13,11 +13,15 @@ namespace DSG
     MqttP(const ClientConfig &config);
     ~MqttP();
 
+    MqttP(const MqttP &) = delete;
+    MqttP &operator=(const MqttP &) = delete;
+    MqttP(MqttP &&) = default;
+    MqttP &operator=(MqttP &&) = default;
+
   private:
-    auto DumpVersionInfo() const -> void;
     auto InitClient() -> Result override;
     auto DeInitClient() -> void override;
-    auto Connect(const ConnectConfig&) -> Result override;
+    auto Connect(const ConnectConfig &) -> Result override;
     auto Disconnect() -> Result override;
     auto ReConnect() -> Result override;
     auto IsConnected() -> bool override;

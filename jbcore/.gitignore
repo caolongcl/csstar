@@ -35,3 +35,5 @@
 # custom
 build
 bin
+lib/zxingcpp
+lib/paho_mqtt_c
