@@ -62,6 +62,17 @@
     "system_error": "cpp",
     "type_traits": "cpp",
     "utility": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "charconv": "cpp",
+    "condition_variable": "cpp",
+    "numbers": "cpp",
+    "optional": "cpp",
+    "shared_mutex": "cpp",
+    "stack": "cpp",
+    "unordered_set": "cpp",
+    "chrono": "cpp",
+    "coroutine": "cpp",
+    "stop_token": "cpp",
+    "thread": "cpp"
   }
 }

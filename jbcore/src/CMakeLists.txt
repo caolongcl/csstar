@@ -14,12 +14,10 @@ set(ZXing_DIR ${root_DIR}/lib/zxingcpp/lib/cmake/ZXing)
 find_package(ZXing REQUIRED)
 find_package(Threads REQUIRED)
 
-add_subdirectory(mqtt)
-add_subdirectory(qrcode)
+add_subdirectory(p)
 
 set(JB_CORE_SRC
-  ${CORE_MQTT_SRC}
-  ${CORE_QRCODE_SRC}
+  ${CORE_P_SRC}
 )
 
 add_library(${PROJECT_NAME} ${JB_CORE_SRC})

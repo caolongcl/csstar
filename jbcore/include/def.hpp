@@ -58,17 +58,17 @@ namespace DSG
     return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   }
 
-#define Str(_in_stream) ((std::stringstream() << _in_stream).str())
+#define DSG_STR(_in_stream) ((std::stringstream() << _in_stream).str())
 
 #define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
-#define DSG_ERROR(msg) std::cerr << Str("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
-#define DSG_LOG(msg) std::clog << Str("[DSG D " << CurTimestamp() << "] " << msg << "\n");
-#define DSG_WARN(msg) std::clog << Str("[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
-#define DSG_THROW(msg) throw std::runtime_error(Str(msg << "\n"));
+#define DSG_ERROR(msg) std::cerr << DSG_STR("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+#define DSG_LOG(msg) std::clog << DSG_STR("[DSG D " << CurTimestamp() << "] " << msg << "\n");
+#define DSG_WARN(msg) std::clog << DSG_STR("[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+#define DSG_THROW(msg) throw std::runtime_error(DSG_STR(msg << "\n"));
 
 #define DSG_TRACE(msg)
-  // #define DSG_TRACE(msg) std::clog << Str("[DSG T " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+  // #define DSG_TRACE(msg) std::clog << DSG_STR("[DSG T " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 
 #define DSG_CALL_EX(funccall) \
   {                           \
