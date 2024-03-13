@@ -31,8 +31,8 @@ target_include_directories(${PROJECT_NAME}
                           PUBLIC
                             $<BUILD_INTERFACE:${root_DIR}/include>
                             $<INSTALL_INTERFACE:include>
-                          PRIVATE
-                            $<BUILD_INTERFACE:${root_DIR}/include>
+                          # PRIVATE
+                          #   $<BUILD_INTERFACE:${root_DIR}/include>
                            )
 
 # 设置版本号
