@@ -13,12 +13,12 @@ namespace DSG
 #define DSG_MQTTCALL_V(funccall) funccall
 
   ///////////////////////////////////////////
-  auto QRCode::RequestQRCode() -> QRCode *
+  auto QRCode::Request() -> QRCode *
   {
     return new QRCodeP();
   }
 
-  auto QRCode::DumpZXingVersion() -> void
+  auto QRCode::DumpVersion() -> void
   {
     DSG_LOG("{ZXing version:" << ZXing::ZXING_VERSION_STR << "}");
   }

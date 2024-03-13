@@ -13,14 +13,14 @@ using namespace DSG;
 
 int main(int argc, char **argv)
 {
-    QRCode::DumpZXingVersion();
+    QRCode::DumpVersion();
     if (argc != 2)
     {
         DSG_ERROR("Usage: sample_qrcode image_path");
         return -1;
     }
 
-    auto *qrcode = QRCode::RequestQRCode();
+    auto *qrcode = QRCode::Request();
 
     // load test png
     // std::string filePath = "/Volumes/Data/junbo_prj/star/jbcore/build/qrcode_test_image.png";
