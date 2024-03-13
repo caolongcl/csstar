@@ -8,11 +8,11 @@ using namespace DSG;
 
 int main(int, char **)
 {   
-    Mqtt::DumpVersionInfo();
+    Mqtt::DumpVersion();
     
     std::string topic = "MqttTest";
 
-    auto *subMqtt = Mqtt::RequestMqtt(Mqtt::ClientConfig{
+    auto *subMqtt = Mqtt::Request(Mqtt::ClientConfig{
         // ._address = "tcp://mqtt.eclipseprojects.io:1883",
         ._address = "tcp://192.168.146.125:1883",
         // ._address = "tcp://test.mosquitto.org:1883",
@@ -31,7 +31,7 @@ int main(int, char **)
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
 
-    auto *pubMqtt = Mqtt::RequestMqtt(Mqtt::ClientConfig{
+    auto *pubMqtt = Mqtt::Request(Mqtt::ClientConfig{
         // ._address = "tcp://mqtt.eclipseprojects.io:1883",
         ._address = "tcp://192.168.146.125:1883",
         // ._address = "tcp://test.mosquitto.org:1883",

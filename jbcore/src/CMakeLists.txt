@@ -14,10 +14,10 @@ set(ZXing_DIR ${root_DIR}/lib/zxingcpp/lib/cmake/ZXing)
 find_package(ZXing REQUIRED)
 find_package(Threads REQUIRED)
 
-add_subdirectory(p)
+add_subdirectory(impl)
 
 set(JB_CORE_SRC
-  ${CORE_P_SRC}
+  ${CORE_IMPL_SRC}
 )
 
 add_library(${PROJECT_NAME} ${JB_CORE_SRC})

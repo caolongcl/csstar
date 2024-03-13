@@ -1,19 +1,19 @@
 project(sample_base VERSION 0.1.0 LANGUAGES C CXX)
 
-set(CUR_TARGET JB_SAMPLES_BASE)
+set(CUR_TARGET JB_SAMPLES_MQTT)
 set(CUR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 message(STATUS ">> DSG File Scan << ${CUR_DIR}")
 
-set(JB_SAMPLES_BASE_INC
+set(${CUR_TARGET}_INC
 )
 
-set(JB_SAMPLES_BASE_SRC
+set(${CUR_TARGET}_SRC
   main.cpp
 )
 
 # 声明测试 sdk 库的代码
-add_executable(${PROJECT_NAME} ${JB_SAMPLES_BASE_SRC})
+add_executable(${PROJECT_NAME} ${JB_SAMPLES_MQTT_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 # 链接 jbcore 库

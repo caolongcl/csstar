@@ -1,5 +1,5 @@
 #include "def.hpp"
-#include "qrcode_p.hpp"
+#include "qrcode.hpp"
 
 #include <ZXing/ZXVersion.h>
 #include <ZXing/ReadBarcode.h>
@@ -10,21 +10,24 @@ namespace DSG
 {
 #define DSG_Err RV::eErrQRCode
 
-#define DSG_MQTTCALL_V(funccall) funccall
+  ///////////////////////////////////////////
+  class QRCodeImpl : public QRCode
+  {
+  public:
+    QRCodeImpl() = default;
+    ~QRCodeImpl() = default;
+
+    QRCodeImpl(const QRCodeImpl &) = default;
+    QRCodeImpl &operator=(const QRCodeImpl &) = default;
+    QRCodeImpl(QRCodeImpl &&) = default;
+    QRCodeImpl &operator=(QRCodeImpl &&) = default;
+
+  private:
+    auto ParseStrFromRGB(unsigned char *rgb, int width, int height, std::string &result) -> Result override;
+  };
 
   ///////////////////////////////////////////
-  auto QRCode::Request() -> QRCode *
-  {
-    return new QRCodeP();
-  }
-
-  auto QRCode::DumpVersion() -> void
-  {
-    DSG_LOG("{ZXing version:" << ZXing::ZXING_VERSION_STR << "}");
-  }
-
-  ///////////////////////////////////////////
-  auto QRCodeP::ParseStrFromRGB(unsigned char *rgb, int width, int height, std::string &result) -> Result
+  auto QRCodeImpl::ParseStrFromRGB(unsigned char *rgb, int width, int height, std::string &result) -> Result
   {
     if (!rgb || width <= 0 || height <= 0)
     {
@@ -53,5 +56,16 @@ namespace DSG
 
     result = b.text(TextMode::Plain);
     return RV::eSuccess;
+  }
+
+  ///////////////////////////////////////////
+  auto QRCode::Request() -> QRCode *
+  {
+    return new QRCodeImpl();
+  }
+
+  auto QRCode::DumpVersion() -> void
+  {
+    DSG_LOG(">>> ZXing version:" << ZXing::ZXING_VERSION_STR);
   }
 }

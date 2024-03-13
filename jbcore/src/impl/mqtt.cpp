@@ -1,5 +1,5 @@
 #include "def.hpp"
-#include "mqtt_p.hpp"
+#include "mqtt.hpp"
 
 #include <MQTTAsync.h>
 
@@ -17,36 +17,48 @@ namespace DSG
     }                                                                            \
   }
 
-#define DSG_MQTTCALL_EX(funccall)                                                       \
-  {                                                                                     \
-    auto ret = MQTTASYNC_SUCCESS;                                                       \
-    if ((ret = funccall) != MQTTASYNC_SUCCESS)                                          \
-    {                                                                                   \
+#define DSG_MQTTCALL_EX(funccall)                                               \
+  {                                                                             \
+    auto ret = MQTTASYNC_SUCCESS;                                               \
+    if ((ret = funccall) != MQTTASYNC_SUCCESS)                                  \
+    {                                                                           \
       DSG_THROW(#funccall << ", ret=" << MQTTAsync_strerror(ret) << "/" << ret) \
-    }                                                                                   \
+    }                                                                           \
   }
 
 #define DSG_MQTTCALL_V(funccall) funccall
 
-  ///////////////////////////////////////////
-  auto Mqtt::ClientConfig::to_string() const -> std::string
+  //////////////////////////////////////////
+  class MqttImpl : public Mqtt
   {
-    std::stringstream ss;
-    ss << "Mqtt::ClientConfig{address:" << _address
-       << ", client_id:" << _clientID
-       << "}";
-    return ss.str();
-  }
+  public:
+    MqttImpl(const ClientConfig &config);
+    ~MqttImpl();
 
-  auto Mqtt::RequestMqtt(const ClientConfig &config) -> Mqtt *
-  {
-    return new MqttP(config);
-  }
+    MqttImpl(const MqttImpl &) = delete;
+    MqttImpl &operator=(const MqttImpl &) = delete;
+    MqttImpl(MqttImpl &&) = default;
+    MqttImpl &operator=(MqttImpl &&) = default;
+
+  private:
+    auto InitClient() -> Result override;
+    auto DeInitClient() -> void override;
+    auto Connect(const ConnectConfig &) -> Result override;
+    auto Disconnect() -> Result override;
+    auto ReConnect() -> Result override;
+    auto IsConnected() -> bool override;
+    auto SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result override;
+    auto Subscribe(const std::string &topic, Qos qos) -> Result override;
+    auto UnSubscribe(const std::string &topic) -> Result override;
+
+  private:
+    ClientConfig _clientConfig;
+    void *_client;
+  };
 
   ////////////////////////////////////////////
   namespace
   {
-    // MQTTAsync_failureData
     static std::string to_string(MQTTAsync_failureData *response)
     {
       if (!response)
@@ -140,7 +152,7 @@ namespace DSG
   static void OnConnect(void *context, MQTTAsync_successData *response)
   {
     DSG_LOG("OnConnect:" << to_string(response, SuccessType::eConnect));
-    auto mqtt = static_cast<MqttP *>(context);
+    auto mqtt = static_cast<MqttImpl *>(context);
   }
 
   static void OnConnectFailure(void *context, MQTTAsync_failureData *response)
@@ -189,43 +201,26 @@ namespace DSG
   }
 
   //////////////////////////////////////////
-  MqttP::MqttP(const ClientConfig &config)
+  MqttImpl::MqttImpl(const ClientConfig &config)
       : _clientConfig{config}, _client{nullptr}
   {
     DSG_LOG(_clientConfig.to_string());
     DSG_CALL_EX(InitClient());
   }
 
-  MqttP::~MqttP()
+  MqttImpl::~MqttImpl()
   {
     DeInitClient();
   }
 
-  auto Mqtt::DumpVersionInfo() -> void
-  {
-    MQTTAsync_nameValue *info = MQTTAsync_getVersionInfo();
-    while (info)
-    {
-      if (info->name && info->value)
-      {
-        DSG_LOG("{" << info->name << ":" << info->value << "}");
-      }
-      else
-      {
-        break;
-      }
-      ++info;
-    }
-  }
-
-  auto MqttP::InitClient() -> Result
+  auto MqttImpl::InitClient() -> Result
   {
     DSG_MQTTCALL(MQTTAsync_create(&_client, _clientConfig._address.c_str(), _clientConfig._clientID.c_str(), MQTTCLIENT_PERSISTENCE_NONE, NULL));
     DSG_MQTTCALL(MQTTAsync_setCallbacks(_client, this, ConnectionLost, MessageArrived, DeliveryComplete));
     return RV::eSuccess;
   }
 
-  auto MqttP::DeInitClient() -> void
+  auto MqttImpl::DeInitClient() -> void
   {
     if (_client != nullptr)
     {
@@ -233,7 +228,7 @@ namespace DSG
     }
   }
 
-  auto MqttP::Connect(const ConnectConfig &connectConfig) -> Result
+  auto MqttImpl::Connect(const ConnectConfig &connectConfig) -> Result
   {
     MQTTAsync_connectOptions connOpts = MQTTAsync_connectOptions_initializer;
     connOpts.keepAliveInterval = 20;
@@ -246,7 +241,7 @@ namespace DSG
     return RV::eSuccess;
   }
 
-  auto MqttP::Disconnect() -> Result
+  auto MqttImpl::Disconnect() -> Result
   {
     MQTTAsync_disconnectOptions opts = MQTTAsync_disconnectOptions_initializer;
     opts.onSuccess = OnDisconnect;
@@ -256,18 +251,18 @@ namespace DSG
     return RV::eSuccess;
   }
 
-  auto MqttP::ReConnect() -> Result
+  auto MqttImpl::ReConnect() -> Result
   {
     DSG_MQTTCALL(MQTTAsync_reconnect(_client));
     return RV::eSuccess;
   }
 
-  auto MqttP::IsConnected() -> bool
+  auto MqttImpl::IsConnected() -> bool
   {
     return MQTTAsync_isConnected(_client);
   }
 
-  auto MqttP::SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result
+  auto MqttImpl::SendMessage(const std::string &topic, Qos qos, Payload payload) -> Result
   {
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
     opts.onSuccess = OnSend;
@@ -284,7 +279,7 @@ namespace DSG
     return RV::eSuccess;
   }
 
-  auto MqttP::Subscribe(const std::string &topic, Qos qos) -> Result
+  auto MqttImpl::Subscribe(const std::string &topic, Qos qos) -> Result
   {
     DSG_LOG("Subscribing to topic " << topic << " for client " << _clientConfig._clientID << " using QoS " << std::underlying_type_t<Qos>(qos));
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
@@ -295,7 +290,7 @@ namespace DSG
     return RV::eSuccess;
   }
 
-  auto MqttP::UnSubscribe(const std::string &topic) -> Result
+  auto MqttImpl::UnSubscribe(const std::string &topic) -> Result
   {
     DSG_LOG("UnSubscribe to topic " << topic << " for client " << _clientConfig._clientID);
     MQTTAsync_responseOptions opts = MQTTAsync_responseOptions_initializer;
@@ -304,5 +299,37 @@ namespace DSG
     opts.context = _client;
     DSG_MQTTCALL(MQTTAsync_unsubscribe(_client, topic.c_str(), &opts));
     return RV::eSuccess;
+  }
+
+  ///////////////////////////////////////////
+  auto Mqtt::ClientConfig::to_string() const -> std::string
+  {
+    std::stringstream ss;
+    ss << "Mqtt::ClientConfig{address:" << _address
+       << ", client_id:" << _clientID
+       << "}";
+    return ss.str();
+  }
+
+  auto Mqtt::Request(const ClientConfig &config) -> Mqtt *
+  {
+    return new MqttImpl(config);
+  }
+
+  auto Mqtt::DumpVersion() -> void
+  {
+    MQTTAsync_nameValue *info = MQTTAsync_getVersionInfo();
+    while (info)
+    {
+      if (info->name && info->value)
+      {
+        DSG_LOG(">>> " << info->name << ":" << info->value);
+      }
+      else
+      {
+        break;
+      }
+      ++info;
+    }
   }
 }

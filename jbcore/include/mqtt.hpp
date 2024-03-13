@@ -42,8 +42,8 @@ namespace DSG
     virtual auto Subscribe(const std::string &topic, Qos qos) -> Result = 0;
     virtual auto UnSubscribe(const std::string &topic) -> Result = 0;
 
-    static auto RequestMqtt(const ClientConfig &) -> Mqtt *;
-    static auto DumpVersionInfo() -> void;
+    static auto Request(const ClientConfig &) -> Mqtt *;
+    static auto DumpVersion() -> void;
   };
 
 }
