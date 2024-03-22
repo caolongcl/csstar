@@ -20,6 +20,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    // auto ptr = std::make_shared<QRCode>(QRCode::Request());
+
     auto *qrcode = QRCode::Request();
 
     // load test png

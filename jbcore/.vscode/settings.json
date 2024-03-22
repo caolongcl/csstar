@@ -73,6 +73,16 @@
     "chrono": "cpp",
     "coroutine": "cpp",
     "stop_token": "cpp",
-    "thread": "cpp"
-  }
+    "thread": "cpp",
+    "__availability": "cpp",
+    "semaphore": "cpp",
+    "__tree": "cpp",
+    "ranges": "cpp",
+    "cassert": "cpp",
+    "typeindex": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "*.ipp": "cpp"
+  },
+  "C_Cpp.clang_format_fallbackStyle": "Google"
 }
