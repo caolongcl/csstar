@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "ptr.hpp"
 #include "result.hpp"
 
 namespace DSG

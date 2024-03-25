@@ -83,6 +83,5 @@
     "map": "cpp",
     "set": "cpp",
     "*.ipp": "cpp"
-  },
-  "C_Cpp.clang_format_fallbackStyle": "Google"
+  }
 }
