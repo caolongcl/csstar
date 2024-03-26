@@ -16,97 +16,77 @@
 namespace dsg::sp {
 namespace detail {
 
-struct ref_counter_unsafe_policy {
-  using type = std::size_t;
+using val_t = std::size_t;
+using mo_t = std::memory_order;
 
-  static auto store(type &counter, std::size_t value, std::memory_order mo)
-      -> void {
-    counter = value;
-  }
+struct ref_counter_unsafe {
+  using type = val_t;
 
-  static auto load(const type &counter, std::memory_order mo) noexcept
-      -> std::size_t {
-    return counter;
-  }
+  static auto store(type &c, val_t v, mo_t mo) -> void { c = v; }
 
-  static auto inc(type &counter, std::memory_order mo) noexcept -> std::size_t {
-    return ++counter;
-  }
+  static auto load(const type &c, mo_t mo) noexcept -> val_t { return c; }
 
-  static auto dec(type &counter, std::memory_order mo) noexcept -> std::size_t {
-    return --counter;
-  }
+  static auto inc(type &c, mo_t mo) noexcept -> val_t { return ++c; }
+
+  static auto dec(type &c, mo_t mo) noexcept -> val_t { return --c; }
 };
 
-struct ref_counter_safe_policy {
-  using type = std::atomic<std::size_t>;
+struct ref_counter_safe {
+  using type = std::atomic<val_t>;
 
-  static auto store(type &counter, std::size_t value, std::memory_order mo)
-      -> void {
-    counter.store(value, mo);
-  }
+  static auto store(type &c, val_t v, mo_t mo) -> void { c.store(v, mo); }
 
-  static auto load(const type &counter, std::memory_order mo) noexcept
-      -> std::size_t {
-    return counter.load(mo);
-  }
+  static auto load(const type &c, mo_t mo) -> val_t { return c.load(mo); }
 
-  static auto inc(type &counter, std::memory_order mo) noexcept -> std::size_t {
-    return counter.fetch_add(1, mo) + 1;
-  }
+  static auto inc(type &c, mo_t mo) -> val_t { return c.fetch_add(1, mo) + 1; }
 
-  static auto dec(type &counter, std::memory_order mo) noexcept -> std::size_t {
-    return counter.fetch_sub(1, mo) - 1;
-  }
+  static auto dec(type &c, mo_t mo) -> val_t { return c.fetch_sub(1, mo) - 1; }
 };
 }  // namespace detail
 
 namespace traits {
 template <typename T, typename U = typename T::type>
-concept CCounterPolicy =
-    requires(T t, U u, std::size_t count, std::memory_order mo) {
-      typename T::type;
-      std::same_as<typename T::type, U>;
+concept CCounter = requires(T t, U u, detail::val_t v, detail::mo_t mo) {
+  typename T::type;
+  std::same_as<typename T::type, U>;
 
-      T::store(u, count, mo);
-      T::load(u, mo);
-      T::inc(u, mo);
-      T::dec(u, mo);
-    };
+  T::store(u, v, mo);
+  T::load(u, mo);
+  T::inc(u, mo);
+  T::dec(u, mo);
+};
 }  // namespace traits
 
-template <traits::CCounterPolicy T>
+template <traits::CCounter T>
 class ref_counter {
  private:
   mutable typename T::type _counter;
 
+  using mo_t = detail::mo_t;
+  using val_t = detail::val_t;
+
  public:
   ref_counter() noexcept : _counter{0} {}
 
-  auto store(std::size_t value,
-             std::memory_order mo = std::memory_order_relaxed) noexcept
-      -> void {
-    T::store(_counter, value, mo);
+  auto store(val_t v, mo_t mo = std::memory_order_relaxed) -> void {
+    T::store(_counter, v, mo);
   }
 
-  auto load(std::memory_order mo = std::memory_order_acquire) noexcept
-      -> std::size_t {
+  auto load(mo_t mo = std::memory_order_acquire) -> val_t {
     return T::load(_counter, mo);
   }
 
-  auto inc(std::memory_order mo = std::memory_order_acq_rel) noexcept
-      -> std::size_t {
+  auto inc(mo_t mo = std::memory_order_acq_rel) -> val_t {
     return T::inc(_counter, mo);
   }
 
-  auto dec(std::memory_order mo = std::memory_order_acq_rel) noexcept
-      -> std::size_t {
+  auto dec(mo_t mo = std::memory_order_acq_rel) -> val_t {
     return T::dec(_counter, mo);
   }
 
-  ref_counter(const ref_counter &r) noexcept { store(r.load()); }
+  ref_counter(const ref_counter &r) { store(r.load()); }
 
-  ref_counter &operator=(const ref_counter &r) noexcept {
+  ref_counter &operator=(const ref_counter &r) {
     if (this != &r) store(r.load());
     return *this;
   }
@@ -119,27 +99,26 @@ class ref_counter {
   }
 };
 
-template <typename CounterPolicy>
+template <traits::CCounter Counter>
 class ptr_policy;
 
 namespace traits {
 template <typename T>
-concept CPtrPolicy =
-    std::derived_from<T, ptr_policy<detail::ref_counter_safe_policy>> ||
-    std::derived_from<T, ptr_policy<detail::ref_counter_unsafe_policy>>;
+concept CPtrT = std::derived_from<T, ptr_policy<detail::ref_counter_safe>> ||
+                std::derived_from<T, ptr_policy<detail::ref_counter_unsafe>>;
 
 struct RawPtrConstructNoRef {};
 struct RawPtrConstructRef {};
 
 }  // namespace traits
 
-template <typename CounterPolicy>
+template <traits::CCounter Counter>
 class ptr_policy {
  private:
   /// @brief object ref
-  mutable ref_counter<CounterPolicy> _ref_counter;
+  mutable ref_counter<Counter> _ref_counter;
 
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   friend class ptr;
 
  protected:
@@ -150,37 +129,48 @@ class ptr_policy {
   ptr_policy(ptr_policy &&) noexcept = default;
   ptr_policy &operator=(ptr_policy &&) noexcept = default;
 
-  auto use_count() -> std::size_t { return _ref_counter.load(); }
+  auto use_count() -> decltype(_ref_counter.load()) {
+    return _ref_counter.load();
+  }
 };
 
+///////////////////////////////////////////////////////////
+/// 直接继承
+using ref_policy = ptr_policy<detail::ref_counter_safe>;
+using unsafe_ref_policy = ptr_policy<detail::ref_counter_unsafe>;
+///////////////////////////////////////////////////////////
+
+namespace traits {
+template <typename T>
+concept CPrtPolicyT =
+    std::is_same_v<T, ref_policy> || std::is_same_v<T, unsafe_ref_policy>;
+}
+
 namespace detail {
-template <typename I, typename PtrPolicy>
-struct _ref : public I, public PtrPolicy {
-  using b_type = I;
+template <typename Interface, traits::CPrtPolicyT PtrPolicyT>
+struct __interface_wrapper : public Interface, public PtrPolicyT {
+  using interface_type = Interface;
+  using ptr_policy_type = PtrPolicyT;
 };
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////
-/// 直接继承
-using safe_ptr_policy = ptr_policy<detail::ref_counter_safe_policy>;
-using unsafe_ptr_policy = ptr_policy<detail::ref_counter_unsafe_policy>;
-
 /// 处理接口
 template <typename Interface>
-using safe_ref = detail::_ref<Interface, safe_ptr_policy>;
-
-template <typename I>
-using ref = safe_ref<I>;
+using interface_wrapper = detail::__interface_wrapper<Interface, ref_policy>;
 
 template <typename Interface>
-using unsafe_ref = detail::_ref<Interface, unsafe_ptr_policy>;
-
+using unsafe_interface_wrapper =
+    detail::__interface_wrapper<Interface, unsafe_ref_policy>;
 ///////////////////////////////////////////////////////////
+
 /// @brief ptr
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 class ptr final {
  public:
   using element_type = T;
+  using ptr_policy_type = std::conditional_t<std::derived_from<T, ref_policy>,
+                                             ref_policy, unsafe_ref_policy>;
 
   ptr() noexcept : ptr{nullptr, traits::RawPtrConstructNoRef{}} {}
   ptr(std::nullptr_t) noexcept : ptr{nullptr, traits::RawPtrConstructNoRef{}} {}
@@ -188,7 +178,7 @@ class ptr final {
   ptr(T *t, traits::RawPtrConstructRef) noexcept : _t{t} { add_ref(); }
 
   /// copy
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   requires std::is_convertible_v<U *, T *>
   ptr(const ptr<U> &rp) : _t{rp._t} {
     add_ref();
@@ -196,7 +186,7 @@ class ptr final {
 
   ptr(const ptr &rp) : _t{rp._t} { add_ref(); }
 
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   requires std::is_convertible_v<U *, T *>
   ptr &operator=(const ptr<U> &rp) {
     ptr(rp).swap(*this);
@@ -211,7 +201,7 @@ class ptr final {
   }
 
   /// move
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   requires std::is_convertible_v<U *, T *>
   ptr(ptr<U> &&rp) noexcept : _t{rp._t} {
     rp._t = nullptr;
@@ -219,7 +209,7 @@ class ptr final {
 
   ptr(ptr &&rp) noexcept : _t{rp._t} { rp._t = nullptr; }
 
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   requires std::is_convertible_v<U *, T *>
   ptr &operator=(ptr<U> &&rp) noexcept {
     ptr(std::move(rp)).swap(*this);
@@ -254,7 +244,7 @@ class ptr final {
 
   operator bool() const noexcept { return _t != nullptr; }
 
-  auto use_count() const -> std::size_t {
+  auto use_count() const -> detail::val_t {
     return _t ? _t->_ref_counter.load() : 0;
   }
 
@@ -268,7 +258,7 @@ class ptr final {
  private:
   T *_t;
 
-  template <traits::CPtrPolicy U>
+  template <traits::CPtrT U>
   friend class ptr;
 
   /// @brief for make_ptr
@@ -295,86 +285,86 @@ class ptr final {
   }
 };
 
-template <traits::CPtrPolicy T, typename... Args>
+template <traits::CPtrT T, typename... Args>
 inline ptr<T> make_ptr(Args &&...args) {
   return ptr<T>::make_ptr(std::forward<Args>(args)...);
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 inline auto swap(ptr<T> &lp, ptr<T> &rp) noexcept -> void {
   lp.swap(rp);
 }
 
-template <traits::CPtrPolicy T1, traits::CPtrPolicy T2>
+template <traits::CPtrT T1, traits::CPtrT T2>
 inline auto operator<(const ptr<T1> &lp, const ptr<T2> &rp) noexcept -> bool {
   return lp.get() < rp.get();
 }
 
-template <traits::CPtrPolicy T1, traits::CPtrPolicy T2>
+template <traits::CPtrT T1, traits::CPtrT T2>
 inline auto operator==(const ptr<T1> &lp, const ptr<T2> &rp) noexcept -> bool {
   return lp.get() == rp.get();
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 inline auto operator==(const ptr<T> &lp, std::nullptr_t) noexcept -> bool {
   return lp.get() == nullptr;
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 inline auto operator==(std::nullptr_t, const ptr<T> &rp) noexcept -> bool {
   return nullptr == rp.get();
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 inline auto operator!=(const ptr<T> &lp, std::nullptr_t) noexcept -> bool {
   return !operator==(lp, nullptr);
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 inline auto operator!=(std::nullptr_t, const ptr<T> &rp) noexcept -> bool {
   return !operator==(nullptr, rp);
 }
 
-template <traits::CPtrPolicy T1, traits::CPtrPolicy T2>
+template <traits::CPtrT T1, traits::CPtrT T2>
 inline auto operator!=(const ptr<T1> &lp, const ptr<T2> &rp) noexcept -> bool {
   return !operator==(lp, rp);
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 ptr<T> static_pointer_cast(const ptr<U> &p) {
   return {static_cast<T *>(p.get()), traits::RawPtrConstructRef{}};
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 requires std::is_convertible_v<std::remove_cv_t<T *>, std::remove_cv_t<U *>>
 ptr<T> const_pointer_cast(const ptr<U> &p) {
   return {const_cast<T *>(p.get()), traits::RawPtrConstructRef{}};
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 requires(std::is_base_of_v<U, T> && std::is_polymorphic_v<U>)
 ptr<T> dynamic_pointer_cast(const ptr<U> &p) {
   // return {dynamic_cast<T *>(p.get()), traits::RawPtrConstructRef{}};
   return {static_cast<T *>(p.get()), traits::RawPtrConstructRef{}};
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 ptr<T> reinterpret_pointer_cast(const ptr<U> &p) {
   return {reinterpret_cast<T *>(p.get()), traits::RawPtrConstructRef{}};
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 ptr<T> static_pointer_cast(ptr<U> &&p) noexcept {
   return ptr<T>(static_cast<T *>(p.detach()), traits::RawPtrConstructNoRef{});
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 requires std::is_convertible_v<std::remove_cv_t<T *>, std::remove_cv_t<U *>>
 ptr<T> const_pointer_cast(ptr<U> &&p) noexcept {
   return ptr<T>(const_cast<T *>(p.detach()), traits::RawPtrConstructNoRef{});
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 requires(std::is_base_of_v<U, T> && std::is_polymorphic_v<U>)
 ptr<T> dynamic_pointer_cast(ptr<U> &&p) noexcept {
   // T *p2 = dynamic_cast<T *>(p.get());
@@ -384,7 +374,7 @@ ptr<T> dynamic_pointer_cast(ptr<U> &&p) noexcept {
   return r;
 }
 
-template <traits::CPtrPolicy T, traits::CPtrPolicy U>
+template <traits::CPtrT T, traits::CPtrT U>
 ptr<T> reinterpret_pointer_cast(ptr<U> &&p) noexcept {
   T *p2 = reinterpret_cast<T *>(p.get());
   ptr<T> r(p2, traits::RawPtrConstructNoRef{});
@@ -392,7 +382,7 @@ ptr<T> reinterpret_pointer_cast(ptr<U> &&p) noexcept {
   return r;
 }
 
-template <traits::CPtrPolicy T>
+template <traits::CPtrT T>
 class scope_ptr {
  public:
   using func = std::function<void(T *)>;
@@ -408,24 +398,37 @@ class scope_ptr {
   func _func;
 };
 
-template <typename Interface, traits::CPtrPolicy T>
-requires std::is_base_of_v<ref<Interface>, T> ||
-         std::is_same_v<ref<Interface>, T>
-class iptr final {
+namespace detail {
+template <typename Interface, traits::CPrtPolicyT PtrPolicyT = ref_policy>
+class interface_ptr final {
  public:
-  iptr() = default;
-  ~iptr() = default;
+  interface_ptr() = default;
+  ~interface_ptr() = default;
+  interface_ptr(const interface_ptr &) noexcept = default;
+  interface_ptr &operator=(const interface_ptr &) noexcept = default;
+  interface_ptr(interface_ptr &&) noexcept = default;
+  interface_ptr &operator=(interface_ptr &&) noexcept = default;
 
-  iptr(const ptr<T> &p) : _p{p} {}
+  template <traits::CPtrT T>
+  requires std::is_same_v<typename ptr<T>::ptr_policy_type, PtrPolicyT>
+  interface_ptr(const ptr<T> &p) : _p{p} {}
 
-  iptr &operator=(const ptr<T> &p) {
+  template <traits::CPtrT T>
+  requires std::is_same_v<typename ptr<T>::ptr_policy_type, PtrPolicyT>
+  interface_ptr &operator=(const ptr<T> &p) {
     _p = p;
     return *this;
   }
 
-  iptr(ptr<T> &&p) noexcept : _p{std::move(p)} { p.reset(); }
+  template <traits::CPtrT T>
+  requires std::is_same_v<typename ptr<T>::ptr_policy_type, PtrPolicyT>
+  interface_ptr(ptr<T> &&p) noexcept : _p{std::move(p)} {
+    p.reset();
+  }
 
-  iptr &operator=(ptr<T> &&p) noexcept {
+  template <traits::CPtrT T>
+  requires std::is_same_v<typename ptr<T>::ptr_policy_type, PtrPolicyT>
+  interface_ptr &operator=(ptr<T> &&p) noexcept {
     _p = std::move(p);
     p.reset();
     return *this;
@@ -445,24 +448,62 @@ class iptr final {
 
   operator bool() const noexcept { return _p; }
 
- private:
-  ptr<T> _p;
-};
+  /// @brief for test
+  /// @return
+  auto use_count() -> detail::val_t { return _p.use_count(); }
 
-template <typename Interface, traits::CPtrPolicy T>
-requires std::is_base_of_v<ref<Interface>, T>
-iptr<Interface, T> interface_cast(const ptr<T> &p) {
+ private:
+  ptr<detail::__interface_wrapper<Interface, PtrPolicyT>> _p;
+};
+}  // namespace detail
+
+template <typename Interface, traits::CPtrT T>
+requires std::is_base_of_v<
+    detail::__interface_wrapper<Interface, typename ptr<T>::ptr_policy_type>, T>
+detail::interface_ptr<Interface, typename ptr<T>::ptr_policy_type>
+interface_cast(const ptr<T> &p) {
   return p;
 }
+
+template <typename Interface, traits::CPtrT T>
+requires std::is_base_of_v<
+    detail::__interface_wrapper<Interface, typename ptr<T>::ptr_policy_type>, T>
+detail::interface_ptr<Interface, typename ptr<T>::ptr_policy_type>
+interface_cast(ptr<T> &&p) {
+  return std::move(p);
+}
+
+template <typename Interface>
+using interface_ptr = detail::interface_ptr<Interface, ref_policy>;
+
+template <typename Interface>
+using unsafe_interface_ptr =
+    detail::interface_ptr<Interface, unsafe_ref_policy>;
 
 }  // namespace dsg::sp
 
 namespace std {
-template <dsg::sp::traits::CPtrPolicy T>
+template <dsg::sp::traits::CPtrT T>
 class hash<dsg::sp::ptr<T>> {
  public:
   size_t operator()(const dsg::sp::ptr<T> &p) const {
     return std::hash<T *>()(p.get());
+  }
+};
+
+template <typename Interface>
+class hash<dsg::sp::interface_ptr<Interface>> {
+ public:
+  size_t operator()(const dsg::sp::interface_ptr<Interface> &p) const {
+    return std::hash<Interface *>()(p.get());
+  }
+};
+
+template <typename Interface>
+class hash<dsg::sp::unsafe_interface_ptr<Interface>> {
+ public:
+  size_t operator()(const dsg::sp::unsafe_interface_ptr<Interface> &p) const {
+    return std::hash<Interface *>()(p.get());
   }
 };
 
@@ -471,3 +512,109 @@ class hash<dsg::sp::ptr<T>> {
 namespace dsg {
 using namespace sp;
 }  // namespace dsg
+
+// namespace h {
+// template <typename Interface>
+// class interface_ptr final {
+//  public:
+//   interface_ptr() = default;
+//   ~interface_ptr() = default;
+//   interface_ptr(const interface_ptr &) noexcept = default;
+//   interface_ptr &operator=(const interface_ptr &) noexcept = default;
+//   interface_ptr(interface_ptr &&) noexcept = default;
+//   interface_ptr &operator=(interface_ptr &&) noexcept = default;
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type, ref_policy>
+//   interface_ptr(const ptr<T> &p, ref_policy *= nullptr) : _p._safe{p} {}
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type,
+//   unsafe_ref_policy> interface_ptr(const ptr<T> &p, unsafe_ref_policy *=
+//   nullptr)
+//       : _p._unsafe{p} {}
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type, ref_policy>
+//   interface_ptr &operator=(const ptr<T> &p, ref_policy *= nullptr) {
+//     _p._safe = p;
+//     return *this;
+//   }
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type,
+//   unsafe_ref_policy> interface_ptr &operator=(const ptr<T> &p,
+//   unsafe_ref_policy *= nullptr) {
+//     _p._unsafe = p;
+//     return *this;
+//   }
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type, ref_policy>
+//   interface_ptr(ptr<T> &&p, ref_policy *= nullptr)) noexcept :
+//   _p._safe{std::move(p)} {
+//     p.reset();
+//   }
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type,
+//   unsafe_ref_policy> interface_ptr(ptr<T> &&p, unsafe_ref_policy *= nullptr)
+//   noexcept
+//       : _p._unsafe{std::move(p)} {
+//     p.reset();
+//   }
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type, ref_policy>
+//   interface_ptr &operator=(ptr<T> &&p, ref_policy *= nullptr) noexcept {
+//     _p._safe = std::move(p);
+//     p.reset();
+//     return *this;
+//   }
+
+//   template <traits::CPtrT T>
+//   requires std::is_same_v<typename ptr<T>::ptr_policy_type,
+//   unsafe_ref_policy> interface_ptr &operator=(ptr<T> &&p, unsafe_ref_policy
+//   *= nullptr) noexcept {
+//     _p._unsafe = std::move(p);
+//     p.reset();
+//     return *this;
+//   }
+
+//   auto get() const noexcept -> Interface * {
+//     return static_cast<Interface *>(_p.get());
+//   }
+
+//   auto operator*() const noexcept -> Interface & {
+//     return *static_cast<Interface *>(_p.get());
+//   }
+
+//   auto operator->() const noexcept -> Interface * {
+//     return static_cast<Interface *>(_p.get());
+//   }
+
+//   operator bool() const noexcept { return _p; }
+
+//  private:
+//   union {
+//     ptr<interface_wrapper<Interface>> _safe;
+//     ptr<unsafe_interface_wrapper<Interface>> _unsafe;
+//   } _p;
+// };
+
+// template <typename Interface, traits::CPtrT T>
+// requires std::is_base_of_v<
+//     detail::__interface_wrapper<Interface, typename ptr<T>::ptr_policy_type>,
+//     T>
+// interface_ptr<Interface> interface_cast(const ptr<T> &p) {
+//   return p;
+// }
+
+// template <typename Interface, traits::CPtrT T>
+// requires std::is_base_of_v<
+//     detail::__interface_wrapper<Interface, typename ptr<T>::ptr_policy_type>,
+//     T>
+// interface_ptr<Interface> interface_cast(ptr<T> &&p) {
+//   return std::move(p);
+// }
+// }  // namespace h

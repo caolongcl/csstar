@@ -11,7 +11,7 @@ struct I {
   virtual void test() { std::cout << "I::test \n"; };
 };
 
-struct Base : public safe_ref<I> {
+struct Base : public interface_wrapper<I> {
   Base() { std::cout << "Base() " << use_count() << "\n"; }
   virtual ~Base() { std::cout << "~Base() " << use_count() << "\n"; }
   virtual void print() { std::cout << "Base::print " << use_count() << "\n"; }
@@ -27,7 +27,7 @@ struct DBase : public Base {
   void test() override { std::cout << "DBase::test " << use_count() << "\n"; }
 };
 
-struct Base1 : public unsafe_ptr_policy {
+struct Base1 : public unsafe_ref_policy {
   Base1() { std::cout << "Base1() " << use_count() << "\n"; }
   ~Base1() { std::cout << "~Base1() " << use_count() << "\n"; }
   void print() { std::cout << "Base1::print " << use_count() << "\n"; }
@@ -84,7 +84,7 @@ void test_safe_ref() {
   std::cout << "-------\n";
   auto p6 = make_ptr<DBase>();
   auto p7 = static_pointer_cast<Base>(p6);
-  auto p8 = static_pointer_cast<ref<I>>(p7);
+  auto p8 = static_pointer_cast<interface_wrapper<I>>(p7);
   p8->test();
   auto p9 = interface_cast<I>(p6);
   p9->test();
@@ -93,10 +93,10 @@ void test_safe_ref() {
   auto p11 = interface_cast<I>(p8);
   p11->test();
 
-  iptr<I, Base> ip12;
+  interface_ptr<I> ip12;
   ip12 = p7;
   ip12->test();
-  iptr<I, DBase> ip13;
+  interface_ptr<I> ip13;
   ip13 = p6;
   ip13->test();
 

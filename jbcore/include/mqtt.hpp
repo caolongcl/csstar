@@ -4,7 +4,7 @@
 #include "ptr.hpp"
 #include "result.hpp"
 
-namespace DSG
+namespace dsg
 {
   struct Mqtt
   {
@@ -43,7 +43,7 @@ namespace DSG
     virtual auto Subscribe(const std::string &topic, Qos qos) -> Result = 0;
     virtual auto UnSubscribe(const std::string &topic) -> Result = 0;
 
-    static auto Request(const ClientConfig &) -> Mqtt *;
+    static auto Request(const ClientConfig &) -> interface_ptr<Mqtt>;
     static auto DumpVersion() -> void;
   };
 

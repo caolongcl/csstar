@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace DSG
+namespace dsg
 {
   struct Result
   {

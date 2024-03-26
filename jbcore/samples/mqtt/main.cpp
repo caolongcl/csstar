@@ -4,7 +4,7 @@
 
 #include <mqtt.hpp>
 
-using namespace DSG;
+using namespace dsg;
 
 int main(int, char **)
 {   
@@ -12,7 +12,7 @@ int main(int, char **)
     
     std::string topic = "MqttTest";
 
-    auto *subMqtt = Mqtt::Request(Mqtt::ClientConfig{
+    auto subMqtt = Mqtt::Request(Mqtt::ClientConfig{
         // ._address = "tcp://mqtt.eclipseprojects.io:1883",
         ._address = "tcp://192.168.146.125:1883",
         // ._address = "tcp://test.mosquitto.org:1883",
@@ -31,7 +31,7 @@ int main(int, char **)
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
 
-    auto *pubMqtt = Mqtt::Request(Mqtt::ClientConfig{
+    auto pubMqtt = Mqtt::Request(Mqtt::ClientConfig{
         // ._address = "tcp://mqtt.eclipseprojects.io:1883",
         ._address = "tcp://192.168.146.125:1883",
         // ._address = "tcp://test.mosquitto.org:1883",
@@ -52,8 +52,6 @@ int main(int, char **)
 
     subThread.join();
     pubThread.join();
-    delete pubMqtt;
-    delete subMqtt;
     return 0;
 }
 

@@ -27,7 +27,7 @@
 #include <utility>
 #include <chrono>
 
-namespace DSG
+namespace dsg
 {
   inline std::string_view ParseFileNameFromPath(std::string_view path)
   {
@@ -60,7 +60,7 @@ namespace DSG
 
 #define DSG_STR(_in_stream) ((std::stringstream() << _in_stream).str())
 
-#define LOG_INFO " [" << DSG::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
+#define LOG_INFO " [" << dsg::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
 
 #define DSG_ERROR(msg) std::cerr << DSG_STR("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 #define DSG_LOG(msg) std::clog << DSG_STR("[DSG D " << CurTimestamp() << "] " << msg << "\n");

@@ -8,11 +8,11 @@
 using namespace ZXing;
 using namespace dsg;
 
-namespace DSG {
+namespace dsg {
 #define DSG_Err RV::eErrQRCode
 
 ///////////////////////////////////////////
-class QRCodeImpl : public ref<QRCode> {
+class QRCodeImpl : public interface_wrapper<QRCode> {
  public:
   QRCodeImpl() = default;
   ~QRCodeImpl() = default;
@@ -59,11 +59,11 @@ auto QRCodeImpl::ParseStrFromRGB(unsigned char *rgb, int width, int height,
 }
 
 ///////////////////////////////////////////
-auto QRCode::Request() -> QRCode* {
-  return new QRCodeImpl();
+auto QRCode::Request() -> interface_ptr<QRCode> {
+  return make_ptr<QRCodeImpl>();
 }
 
 auto QRCode::DumpVersion() -> void {
   DSG_LOG(">>> ZXing version:" << ZXing::ZXING_VERSION_STR);
 }
-}  // namespace DSG
+}  // namespace dsg
