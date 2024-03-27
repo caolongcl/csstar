@@ -6,20 +6,10 @@ project(jbdemo VERSION 0.1.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# debug 生成的可执行文件名会多一个 d，可注释掉
-set(CMAKE_DEBUG_POSTFIX d)
-
 # 设置静态库和动态库生成路径，都为工程内目录
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
-
-# 添加子目录，子目录下必须有 CMakeLists.txt 才会被包含
-add_subdirectory(include)
-add_subdirectory(src)
-add_subdirectory(samples)
-
-set(install_target_prefix jbcore)
 
 # 设置 sdk 库安装路径
 # if(APPLE)
@@ -29,7 +19,28 @@ set(install_target_prefix jbcore)
 #   set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 #   message(STATUS "$ORIGIN/../lib")
 # endif()
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+
+# 检查CMAKE_BUILD_TYPE是否被设置
+if(CMAKE_BUILD_TYPE)
+  message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+  # 检查CMAKE_BUILD_TYPE是否为Debug
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message(STATUS "Configuring for Debug build")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/debug")
+  elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    message(STATUS "Configuring for Release build")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/bin/release")
+  endif()
+endif()
+
+set(CMAKE_DEBUG_POSTFIX d)
+
+# 添加子目录，子目录下必须有 CMakeLists.txt 才会被包含
+add_subdirectory(include)
+add_subdirectory(src)
+add_subdirectory(samples)
+
+set(install_target_prefix jbcore)
 
 # 设置安装配置
 include(InstallRequiredSystemLibraries)
