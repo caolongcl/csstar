@@ -27,74 +27,83 @@
 #include <utility>
 #include <chrono>
 
-namespace dsg
-{
-  inline std::string_view ParseFileNameFromPath(std::string_view path)
-  {
-    const auto start = path.find_last_of('/');
-    return {path.data() + start + 1, path.length() - start - 1};
-  }
+namespace dsg {
+inline std::string_view ParseFileNameFromPath(std::string_view path) {
+  const auto start = path.find_last_of('/');
+  return {path.data() + start + 1, path.length() - start - 1};
+}
 
-  inline std::string_view ParseFileNameFromPathWithoutExt(std::string_view path)
-  {
-    const auto start = path.find_last_of('/');
-    const auto end = path.find_last_of('.');
-    return {path.data() + start + 1, end - start - 1};
-  }
+inline std::string_view ParseFileNameFromPathWithoutExt(std::string_view path) {
+  const auto start = path.find_last_of('/');
+  const auto end = path.find_last_of('.');
+  return {path.data() + start + 1, end - start - 1};
+}
 
-  inline bool StrEqual(const char *l, const char *r)
-  {
-    return std::string_view(l) == std::string_view(r);
-  }
+inline bool StrEqual(const char *l, const char *r) {
+  return std::string_view(l) == std::string_view(r);
+}
 
-  inline std::string CurTime()
-  {
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    return std::ctime(&now);
-  }
+inline std::string CurTime() {
+  auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  return std::ctime(&now);
+}
 
-  inline int64_t CurTimestamp()
-  {
-    return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+inline int64_t CurTimestamp() {
+  return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now())
+      .time_since_epoch()
+      .count();
+}
+
+inline std::string_view trim(std::string_view str) {
+  auto start = str.find_first_not_of(' ');
+  if (start == std::string_view::npos)
+    return str;
+  auto end = str.find_last_not_of(' ');
+  if (end != std::string_view::npos) {
+    return str.substr(start, end - start + 1);
   }
+  return str.substr(start);
+}
 
 #define DSG_STR(_in_stream) ((std::stringstream() << _in_stream).str())
 
-#define LOG_INFO " [" << dsg::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__ << "]"
+#define LOG_INFO                                                                                   \
+  " [" << dsg::ParseFileNameFromPathWithoutExt(__FILE__) << ", " << __func__ << ":" << __LINE__    \
+       << "]"
 
-#define DSG_ERROR(msg) std::cerr << DSG_STR("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+#define DSG_ERROR(msg)                                                                             \
+  std::cerr << DSG_STR("[DSG E " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 #define DSG_LOG(msg) std::clog << DSG_STR("[DSG D " << CurTimestamp() << "] " << msg << "\n");
-#define DSG_WARN(msg) std::clog << DSG_STR("[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+#define DSG_WARN(msg)                                                                              \
+  std::clog << DSG_STR("[DSG W " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
 #define DSG_THROW(msg) throw std::runtime_error(DSG_STR(msg << "\n"));
 
 #define DSG_TRACE(msg)
-  // #define DSG_TRACE(msg) std::clog << DSG_STR("[DSG T " << CurTimestamp() << "] " << msg << LOG_INFO << "\n");
+// #define DSG_TRACE(msg) std::clog << DSG_STR("[DSG T " << CurTimestamp() << "] " << msg <<
+// LOG_INFO << "\n");
 
-#define DSG_CALL_EX(funccall) \
-  {                           \
-    if (!(funccall))          \
-    {                         \
-      DSG_THROW(#funccall)    \
-    }                         \
+#define DSG_CALL_EX(funccall)                                                                      \
+  {                                                                                                \
+    if (!(funccall)) {                                                                             \
+      DSG_THROW(#funccall)                                                                         \
+    }                                                                                              \
   }
 
-#define DSG_CALL(funccall) \
-  {                        \
-    if (!(funccall))       \
-    {                      \
-      DSG_ERROR(#funccall) \
-      return DSG_Err;      \
-    }                      \
+#define DSG_CALL(funccall)                                                                         \
+  {                                                                                                \
+    if (!(funccall)) {                                                                             \
+      DSG_ERROR(#funccall)                                                                         \
+      return DSG_Err;                                                                              \
+    }                                                                                              \
   }
 
-#define DSG_CALLM(funccall, msg)         \
-  {                                      \
-    if (!(funccall))                     \
-    {                                    \
-      DSG_ERROR(#funccall << " " << msg) \
-      return DSG_Err;                    \
-    }                                    \
+#define DSG_CALLM(funccall, msg)                                                                   \
+  {                                                                                                \
+    if (!(funccall)) {                                                                             \
+      DSG_ERROR(#funccall << " " << msg)                                                           \
+      return DSG_Err;                                                                              \
+    }                                                                                              \
   }
-}
+} // namespace dsg
 
 //////////////////////////////////////////////////////////////////

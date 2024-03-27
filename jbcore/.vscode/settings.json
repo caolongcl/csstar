@@ -82,6 +82,10 @@
     "typeindex": "cpp",
     "map": "cpp",
     "set": "cpp",
-    "*.ipp": "cpp"
+    "*.ipp": "cpp",
+    "span": "cpp",
+    "deque": "cpp",
+    "list": "cpp",
+    "regex": "cpp"
   }
 }
