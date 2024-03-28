@@ -20,20 +20,18 @@ if(CMAKE_BUILD_TYPE)
   endif()
 endif()
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
 set(jbcore_root ${CMAKE_CURRENT_SOURCE_DIR}/../jbcore)
 
+set(eclipse-paho-mqtt-c_DIR ${jbcore_root}/lib/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
+set(ZXing_DIR ${jbcore_root}/lib/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/zxingcpp/lib/cmake/ZXing)
+
 # 依赖
-set(jbcore_DIR ${jbcore_root}/out/jbcore/lib/cmake/jbcore)
-find_package(jbcore REQUIRED)
-
-set(eclipse-paho-mqtt-c_DIR ${jbcore_root}/lib/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
 find_package(eclipse-paho-mqtt-c REQUIRED)
-
-set(ZXing_DIR ${jbcore_root}/lib/zxingcpp/lib/cmake/ZXing)
 find_package(ZXing REQUIRED)
-
 find_package(Threads REQUIRED)
+
+set(jbcore_DIR ${jbcore_root}/out/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/jbcore/lib/cmake/jbcore)
+find_package(jbcore REQUIRED)
 
 add_subdirectory(src)
 
@@ -44,7 +42,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE jbcore)
 
 target_include_directories(${PROJECT_NAME}
 PRIVATE 
-  $<BUILD_INTERFACE:${jbcore_root}/out/jbcore/include>
+  $<BUILD_INTERFACE:${jbcore_root}/out/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/jbcore/include>
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

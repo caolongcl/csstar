@@ -2,9 +2,13 @@
 
 ## 开发
 
-设置环境变量，不设置的话默认是 Debug。
-- 编译 debug 版本 `export DSG_BUILD_TYPE=Debug`
-- 编译 release 版本 `export DSG_BUILD_TYPE=Release`
+- 设置编译类型环境变量，不设置则默认为 `Debug`。
+  - 编译 debug 版本 `export DSG_BUILD_TYPE=Debug`
+  - 编译 release 版本 `export DSG_BUILD_TYPE=Release`
+- 设置编译平台类型，不设置则默认为 `host`。`arm`为开发版平台。
+  - 本机平台 `export DSG_BUILD_PLATFORM=host`
+  - 开发板平台 `export DSG_BUILD_PLATFORM=arm`
+
 
 ### 1. 编译第三方依赖
 
@@ -16,7 +20,7 @@
 
 > 注意：每次修改任何 CMakeLists.txt 后，如果编译失败，可以执行 `rm -rf build` 再重编。
 
-执行 `./jbcore/script/build.sh` 编译并安装产物到 `out/jbcore`
+执行 `./jbcore/script/build.sh` 编译并安装产物到 `out`
 - `bin` 测试程序
   - `sample_mqttd` 测试 mqtt 功能
   - `sample_qrcoded [二维码绝对路径]` 测试二维码解码功能

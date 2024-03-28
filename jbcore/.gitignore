@@ -35,5 +35,4 @@
 # custom
 build
 out
-lib/zxingcpp
-lib/paho_mqtt_c
+lib

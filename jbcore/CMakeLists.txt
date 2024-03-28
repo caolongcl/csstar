@@ -20,8 +20,10 @@ endif()
 
 set(install_target_prefix jbcore)
 
-set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/out/${install_target_prefix}")
 set(CMAKE_DEBUG_POSTFIX d)
+
+set(eclipse-paho-mqtt-c_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
+set(ZXing_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lib/${DSG_BUILD_PLATFORM}/${DSG_BUILD_TYPE}/zxingcpp/lib/cmake/ZXing)
 
 add_subdirectory(include)
 add_subdirectory(src)

@@ -7,10 +7,7 @@ message(STATUS ">> DSG File Scan << ${CUR_DIR}")
 
 set(root_DIR ${CUR_DIR}/..)
 
-set(eclipse-paho-mqtt-c_DIR ${root_DIR}/lib/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
 find_package(eclipse-paho-mqtt-c REQUIRED)
-
-set(ZXing_DIR ${root_DIR}/lib/zxingcpp/lib/cmake/ZXing)
 find_package(ZXing REQUIRED)
 find_package(Threads REQUIRED)
 
