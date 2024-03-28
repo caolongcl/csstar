@@ -20,7 +20,7 @@
 - `bin` 测试程序
   - `sample_mqttd` 测试 mqtt 功能
   - `sample_qrcoded [二维码绝对路径]` 测试二维码解码功能
-    比如 `sample_qrcoded /xxx/star/jbcore/docs/wifi.png`
+    比如 `sample_qrcoded /xxx/jbcore/docs/wifi.png`
 - `include`
 - `lib`
 
