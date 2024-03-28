@@ -1,23 +1,50 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(csapp VERSION 0.1.0 LANGUAGES C CXX)
 
-set(cscore_root ${CMAKE_CURRENT_SOURCE_DIR}/lib/cscore)
+project(jbapp VERSION 0.1.0 LANGUAGES C CXX)
 
-# 设置库 cmake 配置目录
-set(cscore_DIR ${cscore_root}/lib/cmake/cscore)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 通过上一步 cmake 配置找到 sdk 库
-find_package(cscore REQUIRED)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-add_executable(${PROJECT_NAME} main.cpp)
+set(CMAKE_DEBUG_POSTFIX d)
 
-# 设置需要 sdk 暴露的头文件
-target_include_directories(${PROJECT_NAME} PUBLIC ${cscore_root}/include)
+if(CMAKE_BUILD_TYPE)
+  message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message(STATUS "Configuring for Debug build")
+  elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    message(STATUS "Configuring for Release build")
+  endif()
+endif()
 
-# 链接 sdk 库
-target_link_libraries(${PROJECT_NAME} cscore)
+set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
+set(jbcore_root ${CMAKE_CURRENT_SOURCE_DIR}/../jbcore)
 
-# set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
-# install(TARGETS ${PROJECT_NAME} DESTINATION bin)
-# file(GLOB_RECURSE libs "${cscore_root}/lib/libcscore*")
-# install(FILES ${libs} DESTINATION bin/lib)
+# 依赖
+set(jbcore_DIR ${jbcore_root}/out/jbcore/lib/cmake/jbcore)
+find_package(jbcore REQUIRED)
+
+set(eclipse-paho-mqtt-c_DIR ${jbcore_root}/lib/paho_mqtt_c/lib/cmake/eclipse-paho-mqtt-c)
+find_package(eclipse-paho-mqtt-c REQUIRED)
+
+set(ZXing_DIR ${jbcore_root}/lib/zxingcpp/lib/cmake/ZXing)
+find_package(ZXing REQUIRED)
+
+find_package(Threads REQUIRED)
+
+add_subdirectory(src)
+
+add_executable(${PROJECT_NAME} ${JB_APP_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE jbcore)
+
+target_include_directories(${PROJECT_NAME}
+PRIVATE 
+  $<BUILD_INTERFACE:${jbcore_root}/out/jbcore/include>
+)
+
+install(TARGETS ${PROJECT_NAME} DESTINATION bin)
